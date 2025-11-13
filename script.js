@@ -18,6 +18,117 @@ let pendingExitCallback = null;
 let pendingExitContext = 'test';
 let isReviewModeActive = false;
 
+// Define exit functions early so they're available when HTML onclick handlers are executed
+function exitFromActiveTest() {
+    console.log('🔴 exitFromActiveTest called');
+    
+    // Disable exit warning since user is explicitly exiting
+    disableTestExitWarning();
+    
+    // Save current state before exiting (in case user wants to resume later)
+    if (currentSubject && currentTestIndex !== null && currentTestIndex !== undefined && Object.keys(userAnswers).length > 0) {
+        saveState();
+        console.log('💾 Test state saved before exit (can be resumed later)');
+    }
+    
+    if (typeof testTimer !== 'undefined' && testTimer) {
+        clearInterval(testTimer);
+        testTimer = null;
+    }
+    if (typeof exitFullscreen === 'function') {
+        exitFullscreen();
+    }
+    if (typeof showView === 'function') {
+        showView('dashboard-view', null, document.getElementById('nav-home'));
+    }
+}
+
+function exitFromReview() {
+    console.log('🔴 exitFromReview called');
+    if (typeof showView === 'function') {
+        showView('dashboard-view', null, document.getElementById('nav-home'));
+    }
+}
+
+function showExitTestModal() {
+    console.log('🔴 showExitTestModal called, isReviewModeActive:', isReviewModeActive);
+    const context = isReviewModeActive ? 'review' : 'test';
+    
+    // Get modal element
+    const modal = document.getElementById('exit-test-modal');
+    if (!modal) {
+        console.error('❌ Exit test modal not found!');
+        return;
+    }
+    
+    // Use requestExitConfirmation if available (defined later in file)
+    // Otherwise, set up modal directly with inline configuration
+    if (typeof requestExitConfirmation === 'function') {
+        requestExitConfirmation(context);
+        return;
+    }
+    
+    // Fallback: Set up modal directly with configuration
+    console.log('⚠️ requestExitConfirmation not yet available, setting up modal directly');
+    const config = context === 'review' ? {
+        title: 'Exit review session?',
+        message: 'You are reviewing your results. Leaving now will close the review session.',
+        confirmLabel: 'Leave Review',
+        cancelLabel: 'Return to Review',
+        onConfirm: exitFromReview
+    } : {
+        title: 'Would you like to exit the test?',
+        message: 'Your test is in progress. If you exit now, your test results will NOT be saved.',
+        confirmLabel: 'Exit Test',
+        cancelLabel: 'Return to the Test',
+        onConfirm: exitFromActiveTest
+    };
+    
+    // Store callback
+    pendingExitContext = context;
+    pendingExitCallback = config.onConfirm;
+    
+    // Update modal content
+    const titleEl = modal.querySelector('[data-exit-title]');
+    const messageEl = modal.querySelector('[data-exit-message]');
+    const confirmBtn = modal.querySelector('[data-exit-confirm]');
+    const cancelBtn = modal.querySelector('[data-exit-cancel]');
+    
+    if (titleEl) titleEl.textContent = config.title;
+    if (messageEl) messageEl.textContent = config.message;
+    if (confirmBtn) confirmBtn.textContent = config.confirmLabel;
+    if (cancelBtn) cancelBtn.textContent = config.cancelLabel;
+    
+    console.log('✅ Showing exit modal with context:', context);
+    modal.style.display = 'flex';
+    modal.style.zIndex = '9999';
+}
+
+function hideExitTestModal(resetCallback = true) {
+    console.log('🔴 hideExitTestModal called');
+    const modal = document.getElementById('exit-test-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        console.log('✅ Exit modal hidden');
+    }
+    if (resetCallback && typeof pendingExitCallback !== 'undefined') {
+        pendingExitCallback = null;
+    }
+    if (typeof pendingExitContext !== 'undefined') {
+        pendingExitContext = 'test';
+    }
+}
+
+// confirmExitTest is defined later in the file (around line 4406)
+
+// Make showExitTestModal and exit functions globally accessible immediately
+// hideExitTestModal and confirmExitTest are made globally accessible later in the file
+if (typeof window !== 'undefined') {
+    window.showExitTestModal = showExitTestModal;
+    window.exitFromActiveTest = exitFromActiveTest;
+    window.exitFromReview = exitFromReview;
+}
+
 function updateDashboardOffset() {
   const mainContent = document.getElementById('main-content');
   if (!mainContent) return;
@@ -1043,6 +1154,11 @@ function performTestReset(subject, index) {
         resetTestAttempts(subject, index);
         const specificKey = `completed-test-${subject}-${index}`;
         localStorage.removeItem(specificKey);
+        
+        // Also clear the test state (in-progress test data)
+        clearTestState(subject, index);
+        console.log('🗑️ Test state cleared on reset');
+        
         const listKey = 'completed-tests-list';
         const listRaw = localStorage.getItem(listKey);
         if (listRaw) {
@@ -1780,6 +1896,25 @@ function setupEventListeners() {
             saveSettings();
         });
     }
+    
+    // Exit button handlers - use event delegation as a fallback
+    // The HTML onclick handlers should handle most cases, but this ensures
+    // buttons without onclick handlers (e.g., dynamically created) still work
+    document.addEventListener('click', function(e) {
+        const exitBtn = e.target.closest('.exam-close-btn');
+        if (exitBtn) {
+            const hasOnclick = exitBtn.getAttribute('onclick');
+            // Only handle if button doesn't have onclick - let onclick handle it otherwise
+            if (!hasOnclick || !hasOnclick.includes('showExitTestModal')) {
+                console.log('🔴 Exit button clicked (event delegation fallback)');
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.showExitTestModal === 'function') {
+                    window.showExitTestModal();
+                }
+            }
+        }
+    });
 }
 
 function showView(viewId, event, navElement) {
@@ -1805,6 +1940,33 @@ function showView(viewId, event, navElement) {
             mainContent.style.marginLeft = '0';
             mainContent.style.width = '100%';
         }
+    } else if (viewId === 'subject-pages-view') {
+        // Keep sidebar visible for subject pages
+        if (sidebar) {
+            sidebar.style.display = 'flex';
+            // KEEP SIDEBAR ALWAYS BLACK - DO NOT CHANGE COLOR
+            sidebar.style.backgroundColor = '#000000';
+            sidebar.style.setProperty('background-color', '#000000', 'important');
+            // Remove any existing subject color style
+            const existingStyle = document.getElementById('sidebar-subject-color-style');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+        }
+        // Keep main-content visible with proper margin for sidebar
+        if (mainContent) {
+            mainContent.style.display = 'flex';
+            const isCollapsed = sidebar && sidebar.classList.contains('sidebar-collapsed');
+            if (isCollapsed) {
+                mainContent.style.marginLeft = '80px';
+            } else {
+                mainContent.classList.add('ml-64');
+                mainContent.style.marginLeft = '';
+            }
+            mainContent.style.width = '';
+            // Make main-content background transparent or white for subject pages
+            mainContent.style.backgroundColor = '#f3f4f6';
+        }
     } else {
         // Show sidebar for dashboard and other views
         if (sidebar) {
@@ -1826,8 +1988,17 @@ function showView(viewId, event, navElement) {
     // Show requested view
     const view = document.getElementById(viewId);
     if (view) {
-        if (viewId === 'dashboard-view' || viewId === 'pre-test-view' || viewId === 'pre-test-instructions-view' || viewId === 'results-view') {
+        if (viewId === 'subject-pages-view') {
+            // Subject pages view - React component handles its own layout
             view.style.display = 'block';
+            view.style.width = '100%';
+            view.style.height = '100%';
+            view.style.position = 'relative';
+        } else if (viewId === 'dashboard-view' || viewId === 'pre-test-view' || viewId === 'pre-test-instructions-view' || viewId === 'results-view') {
+            view.style.display = 'block';
+            if (viewId !== 'dashboard-view' && mainContent) {
+                mainContent.style.display = 'flex';
+            }
         } else {
             view.style.display = 'flex';
         }
@@ -1841,9 +2012,17 @@ function showView(viewId, event, navElement) {
         }
         // Add class to body for dashboard styling
         document.body.classList.add('dashboard-active');
+        document.body.style.backgroundColor = '#282a5c';
+    } else if (viewId === 'subject-pages-view') {
+        // Remove dashboard class when showing subject pages
+        document.body.classList.remove('dashboard-active');
+        // Set light gray background for subject pages (not blue)
+        document.body.style.backgroundColor = '#f9fafb';
     } else {
         // Remove dashboard class when not on dashboard
         document.body.classList.remove('dashboard-active');
+        // Reset body background for other views
+        document.body.style.backgroundColor = '#13547a';
     }
     
     // Update active nav
@@ -1861,28 +2040,58 @@ function showView(viewId, event, navElement) {
         });
         const homeNav = document.getElementById('nav-home');
         if (homeNav) homeNav.classList.add('active');
+        
+        // Ensure sidebar is always black on dashboard
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            // Remove any subject color style
+            const existingStyle = document.getElementById('sidebar-subject-color-style');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+            // Always keep sidebar black
+            sidebar.style.backgroundColor = '#000000';
+            sidebar.style.setProperty('background-color', '#000000', 'important');
+            document.documentElement.style.setProperty('--sidebar-bg-color', '#000000');
+        }
     }
 
-    isReviewModeActive = reviewViews.includes(viewId);
+    isReviewModeActive = viewId === 'review-view' || viewId === 'detailed-review-view' || viewId === 'results-view';
+    console.log('🔄 View changed to:', viewId, 'isReviewModeActive:', isReviewModeActive);
     updateDashboardOffset();
 }
 
 function updateHeaderColor(subjectName) {
+    // Match colors with React component (subject-pages-react.jsx)
     const colorMap = {
-        'Biology': '#4F46E5', // indigo-600
-        'General Chemistry': '#2563EB', // blue-600
-        'Organic Chemistry': '#EA580C', // orange-600
-        'Reading Comprehension': '#1B4332', // dark oil green
-        'Physics': '#9333EA', // purple-600
-        'Quantitative Reasoning': '#DC2626' // red-600
+        'Biology': '#4f72c2', // Blue from React component
+        'General Chemistry': '#06B6D4', // Cyan from React component
+        'Organic Chemistry': '#EA580C', // Orange from React component
+        'Reading Comprehension': '#065F46', // Green from React component
+        'Physics': '#7E22CE', // Purple from React component
+        'Quantitative Reasoning': '#B91C1C' // Red from React component
     };
 
-    // Default to Bootcamp blue if no color is found
+    // Default to dark blue if no color is found
     const color = colorMap[subjectName] || '#0e5c84';
     const defaultHeaderColor = '#0e5c84';
 
     // Set subject color for cards, buttons, etc.
     document.documentElement.style.setProperty('--subject-bg-color', color);
+    
+    // KEEP SIDEBAR ALWAYS BLACK - DO NOT CHANGE SIDEBAR BACKGROUND
+    // Remove any existing subject color style that might change sidebar
+    const existingStyle = document.getElementById('sidebar-subject-color-style');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
+    // Ensure sidebar stays black
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.style.backgroundColor = '#000000';
+        sidebar.style.setProperty('background-color', '#000000', 'important');
+    }
     
     // Always use blue for exam headers/footers
     document.documentElement.style.setProperty('--header-color', defaultHeaderColor);
@@ -2007,11 +2216,15 @@ function showSubject(subjectName, event) {
         preTestSubjectTitle.textContent = subjectName;
     }
     
-    // Show test list
-    displayTestList(subjectName);
+    // Show new React-based subject pages instead of old pre-test view
+    console.log('🔄 Showing subject-pages-view for:', subjectName);
+    showView('subject-pages-view', event);
     
-    // Show pre-test view (which now shows the test list)
-    showView('pre-test-view', event);
+    // Wait a bit for the view to be shown, then initialize React component
+    setTimeout(function() {
+        console.log('🔄 Initializing React component for:', subjectName);
+        initializeSubjectPagesReact(subjectName);
+    }, 50);
 }
 
 function displayTestList(subjectName) {
@@ -2099,25 +2312,44 @@ function displayTestList(subjectName) {
 }
 
 function startPreTest(subjectName, testIndex) {
+    console.log('✅ startPreTest called:', subjectName, 'Test Index:', testIndex);
     currentSubject = subjectName;
     currentTestIndex = testIndex;
     currentQuestionIndex = 0;
-    userAnswers = {};
-    markedQuestions = {};
+    
+    // Load saved test state if it exists (for resuming incomplete tests)
+    const savedState = loadTestState(subjectName, testIndex);
+    if (savedState) {
+        console.log('📥 Loading saved test state:', savedState);
+        userAnswers = savedState.answers || {};
+        markedQuestions = savedState.marked || {};
+        currentQuestionIndex = savedState.questionIndex || 0;
+    } else {
+        // No saved state, start fresh
+        userAnswers = {};
+        markedQuestions = {};
+        currentQuestionIndex = 0;
+    }
     
     // Update header color for this subject
-    updateHeaderColor(subjectName);
+    if (typeof updateHeaderColor === 'function') {
+        updateHeaderColor(subjectName);
+    }
     
     // Clear highlights and strikethroughs when starting a new test
-    clearHighlightsAndStrikethroughs();
+    if (typeof clearHighlightsAndStrikethroughs === 'function') {
+        clearHighlightsAndStrikethroughs();
+    }
     
     const test = allTestData[subjectName] && allTestData[subjectName][testIndex];
     
     if (!test) {
-        console.error('Test not found:', subjectName, testIndex);
+        console.error('❌ Test not found:', subjectName, testIndex, allTestData[subjectName]);
         alert('Test not found. Please try again.');
         return;
     }
+    
+    console.log('✅ Test found:', test.length, 'questions');
     
     // Update pre-test instructions view
     const preTestInstructionsTitle = document.getElementById('pre-test-instructions-title');
@@ -2163,15 +2395,47 @@ function startPreTest(subjectName, testIndex) {
     }
     
     // Load settings
-    loadSettings();
+    if (typeof loadSettings === 'function') {
+        loadSettings();
+    }
     
+    console.log('✅ Showing pre-test-instructions-view');
     showView('pre-test-instructions-view');
 }
 
+// Expose functions to window for React component to use
+window.startPreTest = startPreTest;
+window.allTestData = allTestData;
+
 function startTest() {
-    const test = allTestData[currentSubject][currentTestIndex];
+    const test = allTestData[currentSubject] && allTestData[currentSubject][currentTestIndex];
+    
+    if (!test) {
+        console.error('❌ Test not found in startTest:', currentSubject, currentTestIndex);
+        alert('Test not found. Please try again.');
+        return;
+    }
+    
+    console.log('✅ Starting test:', currentSubject, 'Test #' + (currentTestIndex + 1), 'with', test.length, 'questions');
+    
+    // Load saved answers if resuming a test
+    const savedState = loadTestState(currentSubject, currentTestIndex);
+    if (savedState && savedState.answers) {
+        console.log('📥 Restoring saved answers:', Object.keys(savedState.answers).length, 'answers');
+        userAnswers = savedState.answers;
+        markedQuestions = savedState.marked || {};
+        // Don't restore question index - always start from beginning when explicitly starting a test
+        // But we can restore it if user wants to resume
+        // currentQuestionIndex = savedState.questionIndex || 0;
+    }
+    
+    // Enable beforeunload warning when test is active
+    enableTestExitWarning();
+    
     // Clear highlights and strikethroughs when starting test (in case user went back)
-    clearHighlightsAndStrikethroughs();
+    if (typeof clearHighlightsAndStrikethroughs === 'function') {
+        clearHighlightsAndStrikethroughs();
+    }
     
     // Update test header title and subtitle
     const testHeaderSubtitle = document.getElementById('test-header-subtitle');
@@ -2193,17 +2457,23 @@ function startTest() {
         }
     }
     
-    // Reset time tracking
-    questionStartTime = {};
-    questionTimeSpent = {};
-    testStartTime = Date.now();
+    // Reset time tracking (unless resuming)
+    if (!savedState || !savedState.testStartTime) {
+        questionStartTime = {};
+        questionTimeSpent = {};
+        testStartTime = Date.now();
+    } else {
+        // Restore time tracking if resuming
+        testStartTime = savedState.testStartTime || Date.now();
+        questionTimeSpent = savedState.questionTimeSpent || {};
+    }
     
     // Calculate time - Reading Comprehension is 60 minutes, Quantitative Reasoning is 45 minutes, Physics is 50 minutes, others are 30 minutes
     // Trial mode test (index 0 with passageId questions) uses 10 minutes
     let baseTime = 1800; // Default 30 minutes
     if (currentSubject === 'Reading Comprehension') {
         // Check if this is the trial mode test (index 0 with passageId questions)
-        const isTrialMode = currentTestIndex === 0 && tests[currentTestIndex] && tests[currentTestIndex][0] && tests[currentTestIndex][0].passageId;
+        const isTrialMode = currentTestIndex === 0 && test[0] && test[0].passageId;
         baseTime = isTrialMode ? 600 : 3600; // 10 minutes for trial, 60 for regular
     } else if (currentSubject === 'Quantitative Reasoning') {
         baseTime = 2700; // 45 minutes
@@ -2213,16 +2483,22 @@ function startTest() {
     timeRemaining = timeAccommodations ? Math.floor(baseTime * 1.5) : baseTime;
     
     // Start timer
-    startTimer();
+    if (typeof startTimer === 'function') {
+        startTimer();
+    }
     
     // Show first question
-    displayQuestion(0);
+    if (typeof displayQuestion === 'function') {
+        displayQuestion(0);
+    }
     
     // Show test view
     showView('test-view');
     
     // Enter fullscreen mode
-    enterFullscreen();
+    if (typeof enterFullscreen === 'function') {
+        enterFullscreen();
+    }
 }
 
 // Fullscreen functions
@@ -2923,18 +3199,25 @@ function handleResetCurrentTest() {
 }
 
 function openSubmitConfirmation() {
+    console.log('📝 openSubmitConfirmation called');
     const modal = document.getElementById('confirm-submit-modal');
     if (modal) {
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
+        modal.style.zIndex = '9999';
+        console.log('✅ Submit confirmation modal shown');
+    } else {
+        console.error('❌ Submit confirmation modal not found!');
     }
 }
 
 function closeSubmitConfirmation() {
+    console.log('📝 closeSubmitConfirmation called');
     const modal = document.getElementById('confirm-submit-modal');
     if (modal) {
         modal.classList.add('hidden');
         modal.style.display = 'none';
+        console.log('✅ Submit confirmation modal hidden');
     }
 }
 
@@ -3082,6 +3365,15 @@ function endTest() {
     if (testTimer) {
         clearInterval(testTimer);
         testTimer = null;
+    }
+    
+    // Disable exit warning since test is being submitted
+    disableTestExitWarning();
+    
+    // Clear saved test state since test is being submitted
+    if (currentSubject && currentTestIndex !== null && currentTestIndex !== undefined) {
+        clearTestState(currentSubject, currentTestIndex);
+        console.log('🗑️ Test state cleared after submission');
     }
     
     // Exit fullscreen
@@ -4055,6 +4347,8 @@ function removeTagFromTaggedReview() {
     }
 }
 
+// EXIT_MODAL_COPY and DEFAULT_EXIT_CONTEXT are defined below
+// The exit functions are already defined at the top of the file (lines 25-40)
 const DEFAULT_EXIT_CONTEXT = 'test';
 
 const EXIT_MODAL_COPY = {
@@ -4063,23 +4357,32 @@ const EXIT_MODAL_COPY = {
         message: 'Your test is in progress. If you exit now, your test results will NOT be saved.',
         confirmLabel: 'Exit Test',
         cancelLabel: 'Return to the Test',
-        onConfirm: exitFromActiveTest
+        onConfirm: exitFromActiveTest // Function defined at top of file
     },
     review: {
         title: 'Exit review session?',
         message: 'You are reviewing your results. Leaving now will close the review session.',
         confirmLabel: 'Leave Review',
         cancelLabel: 'Return to Review',
-        onConfirm: exitFromReview
+        onConfirm: exitFromReview // Function defined at top of file
     }
 };
 
 function requestExitConfirmation(context = 'test', onConfirmOverride) {
+    console.log('🔴 requestExitConfirmation called with context:', context);
     const modal = document.getElementById('exit-test-modal');
-    if (!modal) return;
+    if (!modal) {
+        console.error('❌ Exit test modal not found!');
+        return;
+    }
 
     const normalizedContext = EXIT_MODAL_COPY[context] ? context : DEFAULT_EXIT_CONTEXT;
     const config = EXIT_MODAL_COPY[normalizedContext];
+
+    if (!config) {
+        console.error('❌ No config found for context:', normalizedContext);
+        return;
+    }
 
     pendingExitContext = normalizedContext;
     pendingExitCallback = typeof onConfirmOverride === 'function' ? onConfirmOverride : config.onConfirm;
@@ -4094,21 +4397,22 @@ function requestExitConfirmation(context = 'test', onConfirmOverride) {
     if (confirmBtn) confirmBtn.textContent = config.confirmLabel;
     if (cancelBtn) cancelBtn.textContent = config.cancelLabel;
 
+    console.log('✅ Showing exit modal');
     modal.style.display = 'flex';
+    modal.style.zIndex = '9999';
 }
 
 function handleExitAttempt(context = 'test') {
+    console.log('🔴 handleExitAttempt called with context:', context);
     requestExitConfirmation(EXIT_MODAL_COPY[context] ? context : DEFAULT_EXIT_CONTEXT);
 }
 
-function showExitTestModal() {
-    handleExitAttempt(isReviewModeActive ? 'review' : 'test');
-}
-
 function hideExitTestModal(resetCallback = true) {
+    console.log('🔴 hideExitTestModal called');
     const modal = document.getElementById('exit-test-modal');
     if (modal) {
         modal.style.display = 'none';
+        console.log('✅ Exit modal hidden');
     }
     if (resetCallback) {
         pendingExitCallback = null;
@@ -4116,18 +4420,9 @@ function hideExitTestModal(resetCallback = true) {
     pendingExitContext = DEFAULT_EXIT_CONTEXT;
 }
 
-function exitFromActiveTest() {
-    if (testTimer) {
-        clearInterval(testTimer);
-        testTimer = null;
-    }
-    exitFullscreen();
-    showView('dashboard-view', null, document.getElementById('nav-home'));
-}
-
-function exitFromReview() {
-    showView('dashboard-view', null, document.getElementById('nav-home'));
-}
+// Make function globally accessible
+window.hideExitTestModal = hideExitTestModal;
+// exitFromActiveTest and exitFromReview are already defined above
 
 function goBackToSubject() {
     // Go back to dashboard from pre-test view
@@ -4135,15 +4430,22 @@ function goBackToSubject() {
 }
 
 function confirmExitTest() {
+    console.log('🔴 confirmExitTest called, pendingExitContext:', pendingExitContext);
     const fallback = EXIT_MODAL_COPY[pendingExitContext]?.onConfirm || EXIT_MODAL_COPY[DEFAULT_EXIT_CONTEXT].onConfirm;
     const callback = pendingExitCallback || fallback;
     pendingExitCallback = null;
     hideExitTestModal(false);
     pendingExitContext = DEFAULT_EXIT_CONTEXT;
     if (typeof callback === 'function') {
+        console.log('✅ Executing exit callback');
         callback();
+    } else {
+        console.error('❌ No exit callback function found');
     }
 }
+
+// Make function globally accessible
+window.confirmExitTest = confirmExitTest;
 
 // Periodic Table Functions
 function showExhibit() {
@@ -4841,14 +5143,86 @@ function handleCalculatorButton(key) {
 // Save/Load state
 function saveState() {
     try {
+        if (!currentSubject || currentTestIndex === null || currentTestIndex === undefined) {
+            return; // Don't save if test is not active
+        }
+        
         const state = {
             answers: userAnswers,
             marked: markedQuestions,
-            questionIndex: currentQuestionIndex
+            questionIndex: currentQuestionIndex,
+            testStartTime: testStartTime,
+            questionTimeSpent: questionTimeSpent,
+            timestamp: Date.now()
         };
-        localStorage.setItem(`test_${currentSubject}_${currentTestIndex}`, JSON.stringify(state));
+        const key = getTestStateKey(currentSubject, currentTestIndex);
+        localStorage.setItem(key, JSON.stringify(state));
+        console.log('💾 Test state saved:', key, Object.keys(userAnswers).length, 'answers');
     } catch (e) {
         console.error('Failed to save state:', e);
+    }
+}
+
+function getTestStateKey(subject, testIndex) {
+    return `test_${subject}_${testIndex}`;
+}
+
+function loadTestState(subject, testIndex) {
+    try {
+        if (!subject || testIndex === null || testIndex === undefined) {
+            return null;
+        }
+        const key = getTestStateKey(subject, testIndex);
+        const saved = localStorage.getItem(key);
+        if (!saved) {
+            return null;
+        }
+        const state = JSON.parse(saved);
+        console.log('📥 Loaded test state:', key, Object.keys(state.answers || {}).length, 'answers');
+        return state;
+    } catch (e) {
+        console.error('Failed to load test state:', e);
+        return null;
+    }
+}
+
+function clearTestState(subject, testIndex) {
+    try {
+        if (!subject || testIndex === null || testIndex === undefined) {
+            return;
+        }
+        const key = getTestStateKey(subject, testIndex);
+        localStorage.removeItem(key);
+        console.log('🗑️ Test state cleared:', key);
+    } catch (e) {
+        console.error('Failed to clear test state:', e);
+    }
+}
+
+// Enable browser warning when leaving page with unsaved test data
+let testExitWarningEnabled = false;
+function enableTestExitWarning() {
+    if (testExitWarningEnabled) return;
+    testExitWarningEnabled = true;
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    console.log('⚠️ Test exit warning enabled');
+}
+
+function disableTestExitWarning() {
+    if (!testExitWarningEnabled) return;
+    testExitWarningEnabled = false;
+    
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    console.log('✅ Test exit warning disabled');
+}
+
+function handleBeforeUnload(event) {
+    // Only warn if there are unsaved answers
+    if (currentSubject && currentTestIndex !== null && currentTestIndex !== undefined && Object.keys(userAnswers).length > 0) {
+        event.preventDefault();
+        event.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // Some browsers require a return value
     }
 }
 
@@ -5153,3 +5527,56 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('resize', updateDashboardOffset);
+
+// Initialize React component for subject pages
+function initializeSubjectPagesReact(subjectName) {
+    const rootElement = document.getElementById('subject-pages-react-root');
+    if (!rootElement) {
+        console.error('subject-pages-react-root element not found');
+        return;
+    }
+    
+    // Wait for SubjectPagesApp to be available (Babel might still be transpiling)
+    const tryInitialize = (attempts = 0) => {
+        if (window.SubjectPagesApp && typeof window.SubjectPagesApp === 'function') {
+            try {
+                // Clear any existing React content
+                if (rootElement._reactRoot) {
+                    rootElement._reactRoot.unmount();
+                    rootElement._reactRoot = null;
+                }
+                
+                // Create new React root and render
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(React.createElement(window.SubjectPagesApp, { activeSubject: subjectName }));
+                rootElement._reactRoot = root;
+                
+                // Initialize Lucide icons after render - wait for React to render
+                setTimeout(() => {
+                    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                        window.lucide.createIcons();
+                    }
+                }, 300);
+                
+                // Also initialize after React has fully rendered
+                setTimeout(() => {
+                    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                        window.lucide.createIcons();
+                    }
+                }, 600);
+                
+                console.log('SubjectPagesApp initialized for:', subjectName);
+            } catch (error) {
+                console.error('Error initializing SubjectPagesApp:', error);
+            }
+        } else if (attempts < 20) {
+            // Wait up to 2 seconds for Babel to transpile (20 attempts * 100ms)
+            setTimeout(() => tryInitialize(attempts + 1), 100);
+        } else {
+            console.error('SubjectPagesApp not available after waiting');
+        }
+    };
+    
+    // Start initialization
+    tryInitialize();
+}

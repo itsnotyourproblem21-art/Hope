@@ -47,6 +47,7 @@ try {
                     '.html' { 'text/html' }
                     '.htm'  { 'text/html' }
                     '.js'   { 'application/javascript' }
+                    '.jsx'  { 'text/babel' }
                     '.css'  { 'text/css' }
                     '.json' { 'application/json' }
                     '.png'  { 'image/png' }
