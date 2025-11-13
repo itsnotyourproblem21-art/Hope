@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optofutureprep - OAT Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root{
+            --bg: #ffffff;
+            --sidebar-bg: #000000;
+            --panel-bg: #ffffff;
+            --card-bg: #ffffff;
+            --card-border: rgba(15,23,42,0.08);
+            --text: #1f2937;
+            --muted: #9ca3af;
+            --header-color: #0e5c84;
+            --subject-bg-color: #0e5c84;
+            --dashboard-offset: 256px;
+            --subject-accent: #0e5c84;
+            --subject-accent-dark: #0b4766;
+            --subject-accent-light: rgba(14, 92, 132, 0.18);
+            --subject-contrast: #ffffff;
+            --button-top: #396f96;
+            --button-bottom: #1d4e72;
+            --button-border: rgba(255,255,255,0.35);
+        }
+
+        html, body {
+            min-height: 100vh;
+            color: var(--text);
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #13547a;
+        }
+        /* Dashboard view background - set via class */
+        body.dashboard-active {
+            background: #282a5c;
+        }
+        body.dashboard-active #main-content {
+            background: transparent !important;
+        }
+        /* Force black/white background on content areas based on theme */
+        .content-area, 
+        .main-content,
+        .card,
+        .panel,
+        .section {
+            background-color: var(--bg) !important;
+        }
+        /* Ensure text colors follow the theme */
+        .content-area *, 
+        .main-content *,
+        .card *,
+        .panel *,
+        .section * {
+            color: var(--text);
+        }
+        .dashboard-hero {
+            position: relative;
+        }
+        .dashboard-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: calc(var(--dashboard-offset, 0px) * -1);
+            width: calc(100% + var(--dashboard-offset, 0px));
+            background-color: #282a5c;
+            background-image: var(--hero-pattern, none);
+            background-size: 40px 40px;
+            background-repeat: repeat;
+            background-position: top left;
+            pointer-events: none;
+            z-index: -1;
+        }
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.35);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.75);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(51, 65, 85, 0.85);
+        }
+        /* Sidebar styles */
+        #sidebar {
+            background: #000000 !important;
+        }
+        #sidebar.sidebar-collapsed {
+            width: 80px !important;
+        }
+        #sidebar.sidebar-collapsed .sidebar-nav-text,
+        #sidebar.sidebar-collapsed .sidebar-section-header {
+            display: none !important;
+        }
+        #sidebar.sidebar-collapsed #sidebar-logo {
+            display: none !important;
+        }
+        #sidebar.sidebar-collapsed #sidebar-eye-icon {
+            display: block !important;
+        }
+        #sidebar:not(.sidebar-collapsed) #sidebar-eye-icon {
+            display: none !important;
+        }
+        #sidebar.sidebar-collapsed #sidebar-toggle i[data-lucide="chevron-left"] {
+            transform: rotate(180deg) !important;
+        }
+        #sidebar #sidebar-header {
+            position: relative;
+        }
+        #sidebar.sidebar-collapsed #sidebar-header {
+            justify-content: center !important;
+            padding-left: 1.25rem !important;
+            padding-right: 1.25rem !important;
+        }
+        #sidebar.sidebar-collapsed #sidebar-toggle {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        #sidebar.sidebar-collapsed .sidebar-nav-item {
+            justify-content: center !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+        #sidebar.sidebar-collapsed .sidebar-nav-item .flex.items-center.space-x-3 {
+            justify-content: center !important;
+        }
+        #sidebar.sidebar-collapsed .sidebar-submenu {
+            display: none !important;
+        }
+        #sidebar.sidebar-collapsed #sidebar-toggle::after {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 24px;
+        }
+        
+        /* Sidebar navigation item styles */
+        .sidebar-nav-item {
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .sidebar-nav-item:hover {
+            background-color: rgba(255,255,255,0.08) !important;
+        }
+        .sidebar-nav-item.active {
+            background-color: rgba(17, 24, 39, 1) !important;
+            color: #ffffff !important;
+        }
+        .sidebar-nav-item.active i {
+            color: #60A5FA !important;
+        }
+        
+        /* Sidebar submenu */
+        .sidebar-submenu {
+            transition: all 0.3s ease;
+        }
+        .sidebar-submenu.hidden {
+            display: none !important;
+        }
+        
+        /* Subjects chevron rotation - starts at 180deg (down/open), rotates to 0deg (up/closed) */
+        #subjects-chevron {
+            transition: transform 0.3s ease;
+        }
+        #subjects-chevron.rotated {
+            transform: rotate(0deg) !important;
+        }
+        #subjects-chevron:not(.rotated) {
+            transform: rotate(180deg) !important;
+        }
+        /* Active tab style */
+        .tab-link.active {
+            color: #374151; /* gray-700 */
+            font-weight: 600;
+        }
+        /* Test UI button styles - OAT style */
+        .test-btn {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            font-weight: 600;
+            border-radius: 3px; /* Slightly rounded corners like OAT */
+            border: 1px solid var(--button-border);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 2px 4px rgba(15, 23, 42, 0.2);
+            background-image: linear-gradient(to bottom, var(--button-top), var(--button-bottom));
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.1s ease;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        .test-btn:hover {
+            filter: brightness(1.05);
+        }
+        .test-btn:active {
+            filter: brightness(0.92);
+            transform: translateY(1px);
+        }
+        .test-btn:disabled {
+            background: #9ca3af; /* gray-400 */
+            background-image: none;
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+            border-color: #6b7280;
+        }
+        .test-btn.is-marked {
+            background-image: linear-gradient(to bottom, #fcd34d, #f59e0b);
+            background-color: #f59e0b;
+            border-color: rgba(146, 64, 14, 0.9);
+            color: #ffffff;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 2px 4px rgba(146, 64, 14, 0.35);
+        }
+        
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1; /* slate-300 */
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 0;
+            bottom: 0;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #22c55e; /* green-500 */
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Choice selected style */
+        .choice-item.selected {
+            background-color: #dbeafe; /* blue-100 */
+            border-color: #3b82f6; /* blue-500 */
+        }
+        /* Result styles */
+        .result-correct {
+            border-left: 4px solid #22c55e; /* green-500 */
+        }
+        .result-incorrect {
+            border-left: 4px solid #ef4444; /* red-500 */
+        }
+        /* Fixed bottom bar used on pre-test/test/review pages to mimic Bootcamp layout */
+        .fixed-bottom-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 60;
+            background-image: linear-gradient(to bottom, #0e5c84, #0b4766);
+            box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.18);
+            color: #ffffff;
+        }
+
+        .exam-header {
+            background-color: #0e5c84;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.25);
+        }
+        
+        /* Custom blue text for tagline - highest specificity */
+        #dashboard-react-root .tagline-blue,
+        #dashboard-react-root .tagline-blue *,
+        .tagline-blue,
+        .tagline-blue * {
+            color: #60A5FA !important;
+        }
+        
+        /* Test view specific styles - enforce white background */
+        #test-view, #pre-test-instructions-view, #review-view {
+            background: #ffffff;
+        }
+        
+        /* Subject page background styling */
+        .subject-themed-page {
+            background: var(--subject-bg-color) !important;
+        }
+        
+        /* White content container for subject pages */
+        .subject-content-container {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            margin: 32px auto;
+            max-width: 800px;
+            padding: 36px;
+        }
+
+        .subject-tests-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .subject-tests-meta h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .subject-tests-meta span {
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .subject-test-card {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 24px;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .subject-test-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .subject-test-index {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .subject-test-info {
+            flex: 1 1 240px;
+            min-width: 200px;
+        }
+
+        .subject-test-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 6px;
+        }
+
+        .subject-test-tagged {
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .subject-test-progress {
+            flex: 1 1 220px;
+            min-width: 220px;
+        }
+
+        .subject-test-progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .subject-test-progress-correct {
+            background: #22c55e;
+            height: 100%;
+        }
+
+        .subject-test-progress-incorrect {
+            background: #ef4444;
+            height: 100%;
+        }
+
+        .subject-test-progress-text {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .subject-test-meta {
+            flex: 1 1 180px;
+            min-width: 200px;
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .subject-test-meta-item {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .subject-test-meta-value {
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: none;
+            color: #0f172a;
+            letter-spacing: normal;
+        }
+
+        .subject-test-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn-pill {
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .btn-pill.review {
+            background: var(--subject-accent);
+            color: var(--subject-contrast);
+            box-shadow: 0 12px 20px -12px rgba(15, 23, 42, 0.3);
+        }
+
+        .btn-pill.review:hover {
+            background: var(--subject-accent-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-pill.reset {
+            background: var(--subject-accent-light);
+            color: var(--subject-accent);
+            border-color: var(--subject-accent);
+        }
+
+        .btn-pill.reset:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .btn-pill.start {
+            background: #ffffff;
+            color: var(--subject-accent);
+            border-color: var(--subject-accent);
+        }
+
+        .btn-pill.start:hover {
+            background: var(--subject-accent-light);
+        }
+
+        .exam-close-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            color: #ffffff;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .exam-close-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+
+        .exam-close-btn:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.6);
+            outline-offset: 2px;
+        }
+
+        .review-layout {
+            display: flex;
+            background: #f6f8fb;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        .review-sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #312968 0%, #1f1a44 100%);
+            color: #f8faff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .review-sidebar-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .review-back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.12);
+            color: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .review-back-btn:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .review-sidebar-title {
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 600;
+            opacity: 0.8;
+            margin-top: 16px;
+        }
+
+        .review-sidebar-test {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .review-sidebar-progress {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .review-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.12);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .review-pill .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .review-pill.correct .dot {
+            background: #4ade80;
+        }
+
+        .review-pill.incorrect .dot {
+            background: #f97316;
+        }
+
+        .review-pill.unanswered .dot {
+            background: #facc15;
+        }
+
+        .review-sidebar-filters {
+            padding: 16px 24px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .review-filter-btn {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, border 0.2s ease;
+        }
+
+        .review-filter-btn:hover,
+        .review-filter-btn.active {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+
+        .review-sidebar-search {
+            padding: 0 24px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .review-sidebar-search input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.16);
+            color: inherit;
+            font-size: 13px;
+        }
+
+        .review-sidebar-search input::placeholder {
+            color: rgba(248, 250, 255, 0.6);
+        }
+
+        .review-question-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 10px 24px;
+        }
+
+        .review-question-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            margin: 0 14px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.18s ease, transform 0.18s ease;
+            color: rgba(248, 250, 255, 0.85);
+        }
+
+        .review-question-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateX(2px);
+        }
+
+        .review-question-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .review-question-item .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .review-question-item.correct .status-dot {
+            background: #4ade80;
+        }
+
+        .review-question-item.incorrect .status-dot {
+            background: #f97316;
+        }
+
+        .review-question-item.unanswered .status-dot {
+            background: #facc15;
+        }
+
+        .review-question-item .tag-indicator {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: rgba(96, 165, 250, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #93c5fd;
+        }
+
+        .review-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px 48px;
+            overflow-y: auto;
+            background: #f6f8fb;
+        }
+
+        .review-content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 18px;
+        }
+
+        .review-question-index {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6366f1;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .review-question-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.4;
+        }
+
+        .review-header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .review-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            background: white;
+            color: #3730a3;
+            transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
+        }
+
+        .review-action-btn:hover {
+            background: #eef2ff;
+            border-color: rgba(99, 102, 241, 0.35);
+        }
+
+        #review-mark-btn.is-marked {
+            background: #1e293b;
+            color: #f8fafc;
+            border-color: #1e293b;
+        }
+
+        #review-tag-btn {
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            background: rgba(96, 165, 250, 0.12);
+            color: #1d4ed8;
+        }
+
+        #review-tag-btn.is-tagged {
+            background: #1d4ed8;
+            color: #ffffff;
+            border-color: #1d4ed8;
+        }
+
+        .review-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .review-meta-chip {
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #eef2ff;
+            color: #3730a3;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .review-meta-chip.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .review-meta-chip.error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .review-meta-chip.neutral {
+            background: #fef9c3;
+            color: #92400e;
+        }
+
+        .review-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .review-choice {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 2px solid #e5e7eb;
+            background: #ffffff;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .review-choice.correct {
+            border-color: #22c55e;
+            background: #f0fdf4;
+            box-shadow: 0 8px 18px rgba(34, 197, 94, 0.1);
+        }
+
+        .review-choice.incorrect {
+            border-color: #ef4444;
+            background: #fef2f2;
+            box-shadow: 0 8px 18px rgba(239, 68, 68, 0.1);
+        }
+
+        .review-choice label {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 14px;
+            color: #1f2937;
+            font-weight: 500;
+            flex: 1;
+            cursor: default;
+        }
+
+        .review-choice .choice-letter {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            color: #3730a3;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .review-choice.correct .choice-letter {
+            background: #4ade80;
+            color: #0f5132;
+        }
+
+        .review-choice.incorrect .choice-letter {
+            background: #fca5a5;
+            color: #7f1d1d;
+        }
+
+        .review-choice svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .review-explanation-card {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            box-shadow: 0 15px 30px -18px rgba(15, 23, 42, 0.35);
+        }
+
+        .review-explanation-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .review-explanation-card p {
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .review-navigation {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .review-nav-btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #1f2937;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .review-nav-btn:hover:not(:disabled) {
+            background: #f1f5f9;
+        }
+
+        .review-nav-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .review-progress-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .results-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 24px;
+        }
+
+        .results-modal {
+            background: #ffffff;
+            border-radius: 24px;
+            width: min(720px, 100%);
+            padding: 36px 40px;
+            box-shadow: 0 35px 60px -20px rgba(15, 23, 42, 0.3);
+            position: relative;
+        }
+
+        .results-modal h2 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+        }
+
+        .results-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.08);
+            color: #0f172a;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+        }
+
+        .results-modal-close:hover {
+            background: rgba(15, 23, 42, 0.15);
+        }
+
+        .results-modal-meta {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .results-modal-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+
+        .results-modal-btn {
+            padding: 12px 22px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .results-modal-btn.primary {
+            background: var(--subject-accent);
+            color: var(--subject-contrast);
+            box-shadow: 0 12px 24px -16px rgba(15, 23, 42, 0.3);
+        }
+
+        .results-modal-btn.primary:hover {
+            transform: translateY(-1px);
+            background: var(--subject-accent-dark);
+        }
+
+        .results-modal-btn.secondary {
+            background: var(--subject-accent-light);
+            color: var(--subject-accent);
+        }
+
+        .results-attempt-card {
+            display: none;
+            align-items: center;
+            gap: 24px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 20px 24px;
+            box-shadow: 0 15px 40px -24px rgba(15, 23, 42, 0.35);
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .results-attempt-index {
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: var(--subject-accent-light);
+            color: var(--subject-accent);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 16px;
+        }
+
+        .results-attempt-header {
+            display: flex;
+            align-items: center;
+            min-width: 240px;
+            flex: 1 1 220px;
+        }
+
+        .results-attempt-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+        }
+
+        .results-tagged-info {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .results-progress {
+            flex: 1 1 220px;
+            min-width: 220px;
+        }
+
+        .results-progress-bar {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            display: flex;
+            overflow: hidden;
+            background: #f1f5f9;
+        }
+
+        .results-progress-correct {
+            background: #22c55e;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .results-progress-incorrect {
+            background: #ef4444;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .results-progress-text {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .results-attempt-meta {
+            display: flex;
+            gap: 18px;
+            flex: 1 1 220px;
+            min-width: 220px;
+            flex-wrap: wrap;
+        }
+
+        .results-meta-item {
+            font-size: 12px;
+            color: #475569;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .results-meta-value {
+            font-size: 16px;
+            letter-spacing: normal;
+            text-transform: none;
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .results-attempt-actions {
+            display: flex;
+            gap: 12px;
+            flex: 0 0 auto;
+        }
+
+        .results-reset-btn,
+        .results-review-btn {
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .results-reset-btn {
+            background: var(--subject-accent-light);
+            color: var(--subject-accent);
+            border-color: var(--subject-accent);
+        }
+
+        .results-reset-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .results-review-btn {
+            background: var(--subject-accent);
+            color: var(--subject-contrast);
+            box-shadow: 0 10px 20px -12px rgba(15, 23, 42, 0.35);
+        }
+
+        .results-review-btn:hover {
+            background: var(--subject-accent-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px -12px rgba(15, 23, 42, 0.35);
+        }
+        .results-app-view {
+            background: linear-gradient(180deg, #4c2a85 0%, #2d1a52 100%);
+            min-height: 100vh;
+        }
+        .results-summary-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.3);
+            padding: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+        .results-summary-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(120% 140% at 100% 0%, rgba(99, 102, 241, 0.12), transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Previous tests view */
+        .previous-tests-app {
+            background: linear-gradient(180deg, #4c2a85 0%, #2d1a52 100%);
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 72px 24px 96px;
+            color: #f5f7ff;
+            overflow-y: auto;
+        }
+
+        .previous-tests-container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .previous-tests-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .previous-tests-breadcrumb button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.12);
+            color: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+        }
+
+        .previous-tests-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .previous-tests-title {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .previous-tests-subtitle {
+            font-size: 16px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .previous-tests-card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(16, 24, 64, 0.35);
+            overflow: hidden;
+            color: #111827;
+        }
+
+        .previous-tests-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 28px 32px 20px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        }
+
+        .previous-tests-card-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .previous-tests-card-meta {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .previous-tests-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .previous-tests-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        .previous-tests-table thead th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            padding: 14px 18px;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .previous-tests-table tbody tr {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .previous-tests-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .previous-tests-table tbody td {
+            padding: 18px;
+            font-size: 15px;
+            vertical-align: middle;
+        }
+
+        .previous-tests-index {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .previous-tests-raw-score {
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .previous-tests-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            letter-spacing: 0.02em;
+        }
+
+        .previous-tests-empty-state {
+            padding: 48px 32px 56px;
+            text-align: center;
+            color: #1e293b;
+        }
+
+        .previous-tests-empty-state svg {
+            width: 64px;
+            height: 64px;
+            color: #818cf8;
+            margin-bottom: 16px;
+        }
+
+        .previous-tests-empty-state h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .previous-tests-empty-state p {
+            font-size: 14px;
+            color: #475569;
+        }
+        .score-ring {
+            --score-deg: 0deg;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: conic-gradient(#3b82f6 var(--score-deg), #e5e7eb var(--score-deg));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .score-ring::after {
+            content: "";
+            position: absolute;
+            inset: 28px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.08);
+        }
+        .score-ring span {
+            position: relative;
+            font-size: 48px;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+        .metric-card {
+            background: #f9fafb;
+            border-radius: 18px;
+            padding: 20px 24px;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+        }
+        .metric-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .metric-value {
+            margin-top: 6px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        /* Apply extra bottom padding to views that use the fixed bar so content isn't hidden */
+        .view-with-bottom {
+            padding-bottom: 100px; /* space for bottom bar (adjust if bar height changes) */
+        }
+        
+        #sidebar {
+            background: #000000 !important;
+            color: #d1d5db;
+        }
+        #sidebar h3 {
+            color: #6b7280;
+        }
+        #main-content {
+            background-color: var(--bg);
+        }
+        /* Apply theme overrides only to the dashboard (home) view so other sections keep their original colors */
+        /* Dashboard view should allow React component to control its own styling */
+        #dashboard-view {
+            background-color: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+        }
+        
+        /* Ensure dashboard-react-root takes full width and height */
+        #dashboard-react-root {
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        /* When dashboard is visible, ensure main-content is full width */
+        #dashboard-view[style*="block"] ~ *,
+        body:has(#dashboard-view[style*="block"]) #main-content {
+            background: transparent !important;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="flex h-screen" style="font-family: Inter, sans-serif;">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-black text-white min-h-screen flex flex-col p-0 shadow-2xl z-20 transition-all duration-300" style="width: 256px;">
+            <!-- Logo and Collapse Button -->
+            <div id="sidebar-header" class="flex items-center p-5 mb-4 pt-8 justify-between">
+                <div id="sidebar-logo" class="w-auto bg-gray-800 rounded-full px-3 py-2 flex items-center mr-4 shadow-inner">
+                    <span class="text-xl font-bold tracking-tight text-white whitespace-nowrap">
+                        <span class="text-blue-400">Opto</span><span class="text-white">future</span><span class="text-blue-400">prep</span>
+                    </span>
+                </div>
+                <div id="sidebar-eye-icon" class="p-2 hidden">
+                    <i data-lucide="eye" class="w-7 h-7 text-blue-400"></i>
+                </div>
+                <button id="sidebar-toggle" onclick="toggleSidebar()" class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition duration-150 flex-shrink-0" aria-label="Collapse Sidebar">
+                    <i data-lucide="chevron-left" class="w-6 h-6 transition-transform duration-300"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 space-y-0 text-sm overflow-y-auto">
+                <!-- Home Link -->
+                <a href="#" id="nav-home" onclick="showView('dashboard-view', event, this)" class="sidebar-nav-item active flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 text-white bg-gray-900 rounded-lg shadow-md">
+                    <i data-lucide="home" class="w-6 h-6 flex-shrink-0 text-blue-400"></i>
+                    <span class="sidebar-nav-text">Home</span>
+                </a>
+
+                <!-- STUDY Section -->
+                <div id="study-section" class="sidebar-section">
+                    <div id="study-header" class="px-5 pt-6 pb-2 text-xs uppercase font-medium tracking-wider text-gray-500 sidebar-section-header">
+                        STUDY
+                    </div>
+                    
+                    <!-- Subjects (Collapsible) -->
+                    <a href="#" id="nav-subjects" onclick="toggleSubjectsMenu(event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-xl justify-between text-gray-300 bg-gray-900/40 rounded-lg" aria-expanded="true">
+                        <div class="flex items-center space-x-3">
+                            <i data-lucide="graduation-cap" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Subjects</span>
+                        </div>
+                        <i data-lucide="chevron-down" id="subjects-chevron" class="w-5 h-5 ml-auto transition-transform duration-300 rotate-180 sidebar-nav-text"></i>
+                    </a>
+
+                    <!-- Subject Sub-links -->
+                    <div id="subjects-list" class="space-y-0 sidebar-submenu" aria-hidden="false">
+                        <a href="#" id="nav-biology" onclick="showSubject('Biology', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="dna" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Biology</span>
+                        </a>
+                        <a href="#" id="nav-general-chemistry" onclick="showSubject('General Chemistry', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="flask-conical" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">General Chemistry</span>
+                        </a>
+                        <a href="#" id="nav-organic-chemistry" onclick="showSubject('Organic Chemistry', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="atom" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Organic Chemistry</span>
+                        </a>
+                        <a href="#" id="nav-reading-comprehension" onclick="showSubject('Reading Comprehension', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="book-open" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Reading Comprehension</span>
+                        </a>
+                        <a href="#" id="nav-physics" onclick="showSubject('Physics', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="rocket" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Physics</span>
+                        </a>
+                        <a href="#" id="nav-quantitative-reasoning" onclick="showSubject('Quantitative Reasoning', event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 pl-10 text-gray-300 bg-gray-900/40 rounded-lg">
+                            <i data-lucide="calculator" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                            <span class="sidebar-nav-text">Quantitative Reasoning</span>
+                        </a>
+                    </div>
+
+                    <!-- Full Length Tests -->
+                    <a href="#" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 text-gray-300 bg-gray-900/40 rounded-lg opacity-60 cursor-not-allowed">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                        <span class="sidebar-nav-text">Full Length Tests</span>
+                    </a>
+                </div>
+
+                <!-- REVIEW Section -->
+                <div id="review-section" class="sidebar-section">
+                    <div id="review-header" class="px-5 pt-6 pb-2 text-xs uppercase font-medium tracking-wider text-gray-500 border-t border-gray-800 mt-4 sidebar-section-header">
+                        REVIEW
+                    </div>
+                    
+                    <a href="#" onclick="showPreviousTests(event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 text-gray-300 bg-gray-900/40 rounded-lg">
+                        <i data-lucide="clock" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                        <span class="sidebar-nav-text">Previous Tests</span>
+                    </a>
+                    <a href="#" onclick="showTaggedQuestions(event)" class="sidebar-nav-item flex items-center py-4 font-medium transition duration-150 px-3 mx-2 text-lg space-x-3 text-gray-300 bg-gray-900/40 rounded-lg">
+                        <i data-lucide="tag" class="w-6 h-6 flex-shrink-0 text-gray-500"></i>
+                        <span class="sidebar-nav-text">Tagged Questions</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="h-8"></div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 ml-64 overflow-y-auto" style="min-height: 100vh;">
+            <!-- == DASHBOARD VIEW == -->
+            <div id="dashboard-view" class="app-view" style="display: block;">
+                <div id="dashboard-react-root"></div>
+            </div>
+
+        </main>
+        
+        <!-- == PRE-TEST VIEW (Hidden by default) == -->
+    <div id="pre-test-view" class="app-view flex-col w-full view-with-bottom" style="display: none; min-height: 100vh;">
+            <!-- Pre-Test Header -->
+            <div id="pre-test-header" class="exam-header flex items-center justify-between text-white px-4 h-[46px]">
+                <button id="pre-test-close-btn" aria-label="Close" class="exam-close-btn w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none" onclick="showView('dashboard-view', event, document.getElementById('nav-home'))">×</button>
+                <div class="text-center leading-tight" style="font-family: Arial, sans-serif;">
+                    <div style="font-size: 14px; font-weight: normal;">Optofutureprep | OAT</div>
+                    <div id="pre-test-header-title" style="font-size: 11px; opacity: 0.9; font-weight: normal;">Subject Name</div>
+                            </div>
+                <div class="w-8"></div> <!-- Spacer -->
+                        </div>
+
+            <!-- Pre-Test Content Area - Now shows test list -->
+            <div class="flex-1 flex justify-center items-start pt-12 pb-6 overflow-auto" style="min-height: calc(100vh - 46px);">
+                <div class="w-[80%] max-w-4xl subject-content-container">
+                    <div class="subject-tests-meta">
+                        <h1 id="pre-test-subject-title">Subject Name</h1>
+                        <span id="subject-tests-meta-summary">0 practice tests available</span>
+                    </div>
+
+                    <div id="no-tests-view" style="display: none;">
+                        <div class="border-2 border-dashed border-white/60 rounded-lg text-center py-20 text-white">
+                            <svg class="mx-auto h-16 w-16 text-white/70" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                            <h3 class="mt-4 text-2xl font-semibold">No practice tests yet</h3>
+                            <p class="mt-2 text-sm opacity-80">Once practice tests are available for this subject, they'll appear here.</p>
+                        </div>
+                    </div>
+
+                    <div id="test-list-view" style="display: none;">
+                        <div id="test-list-container">
+                            <!-- Subject test cards injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        
+        <!-- == PRE-TEST INSTRUCTIONS VIEW (Hidden by default) == -->
+    <div id="pre-test-instructions-view" class="app-view flex flex-col h-screen w-full view-with-bottom" style="display: none;">
+            <!-- Pre-Test Header -->
+            <div class="exam-header flex items-center justify-between text-white px-4 h-[54px]">
+                <button id="pre-test-instructions-close-btn" aria-label="Close" class="exam-close-btn w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none" onclick="showView('pre-test-view', event)">×</button>
+                <div class="text-center leading-tight" style="font-family: Arial, sans-serif;">
+                    <div style="font-size: 14px; font-weight: normal;">Optofutureprep | OAT</div>
+                    <div id="pre-test-instructions-header-title" style="font-size: 11px; opacity: 0.9; font-weight: normal;">Test Title</div>
+                </div>
+                <div style="font-size: 11px; opacity: 0.9;">&nbsp;</div>
+            </div>
+
+            <!-- Pre-Test Content Area -->
+            <div class="flex-1 flex justify-center items-start pt-10 pb-6 overflow-auto bg-white">
+                <div class="w-[62%] min-w-[740px] bg-white border border-slate-300 shadow-lg p-8">
+                    <!-- Instructions Box -->
+                    <div class="border-2 border-black p-8 mb-6 bg-white">
+                        <h2 id="pre-test-instructions-title" class="font-semibold text-lg mb-2 text-black" style="font-family: Arial, sans-serif; font-size: 16px;">This is Biology Test #1. Read this before starting:</h2>
+                        <ol class="list-decimal ml-6 space-y-1 text-sm text-black" style="font-family: Arial, sans-serif; font-size: 14px;">
+                            <li id="pre-test-instructions-instruction-1">You have 30 minutes to finish 46 questions.</li>
+                            <li>You can review questions before ending the section.</li>
+                            <li>Your score analysis appears after finishing.</li>
+                        </ol>
+                        <p class="text-sm mt-4 text-black" style="font-family: Arial, sans-serif; font-size: 14px;">Click NEXT to continue.</p>
+                    </div>
+
+                    <!-- Test Settings -->
+                    <h3 class="font-semibold mb-2 text-black" style="font-family: Arial, sans-serif; font-size: 18px;">Test Settings</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 bg-slate-100 border rounded p-3">
+                            <label class="toggle-switch flex-shrink-0">
+                                <input type="checkbox" id="toggle-prometric-delay">
+                                <span class="slider"></span>
+                            </label>
+                            <div class="text-sm" style="font-family: Arial, sans-serif; font-size: 14px;">
+                                <span class="font-semibold">Prometric Delay:</span> Adds a ~2 second delay on navigation and review.
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-slate-100 border rounded p-3">
+                            <label class="toggle-switch flex-shrink-0">
+                                <input type="checkbox" id="toggle-time-accommodations">
+                                <span class="slider"></span>
+                            </label>
+                            <div class="text-sm" style="font-family: Arial, sans-serif; font-size: 14px;">
+                                <span class="font-semibold">Time Accommodations:</span> Get an additional 1.5x time for students who have special accommodations approved by the ADA. (If you need more time, right-click the test timer during the test to set a custom time limit).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-Test Bottom Bar - Fixed at bottom -->
+            <div class="fixed-bottom-bar flex items-center justify-center h-[64px] px-6">
+                <button id="pre-test-next-btn" class="px-10 py-2 text-[13px] font-semibold text-white border border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] rounded-none bg-gradient-to-b from-[#396f96] to-[#1d4e72] active:to-[#153c56]">NEXT</button>
+            </div>
+        </div>
+
+        <!-- == TEST VIEW (Hidden by default) == -->
+    <div id="test-view" class="app-view flex-col h-screen w-full view-with-bottom" style="display: none;">
+            <!-- Test Header -->
+            <div class="exam-header flex items-center justify-between text-white px-6 py-2 h-[46px]">
+                <div class="flex items-center gap-3">
+                    <button onclick="showExitTestModal()" aria-label="Close" class="exam-close-btn w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none">×</button>
+                    <div class="text-sm font-semibold">Question <span id="test-q-number">1</span> of <span id="test-q-total">40</span></div>
+                </div>
+                <div id="test-header-subtitle" class="text-[11px] opacity-90" style="font-family: Arial, sans-serif;">Reading Comprehension — Sample</div>
+                <div class="text-sm">Time remaining: <span id="test-timer">30:00</span></div>
+            </div>
+
+            <!-- Test Content Area -->
+            <div class="flex-1 flex justify-center items-start pt-8 pb-6 overflow-y-auto bg-white">
+                <div id="test-content-wrapper" class="w-[62%] min-w-[740px] bg-white border border-slate-300 shadow-lg p-8 relative">
+                    <!-- Stem and choices -->
+                    <div class="mb-5" id="test-content-area">
+                        <p id="test-q-stem" class="mb-4 leading-relaxed">Question stem...</p>
+                        <div id="test-q-choices" class="flex flex-col gap-3 text-sm">
+                            <!-- Choices will be dynamically injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Reading Comprehension Passage (only for Reading Comprehension) -->
+                    <div id="test-passage-container" style="display: none;" class="mt-6 w-full border border-slate-300 rounded-sm max-h-[400px] bg-white">
+                        <!-- Custom Title Bar: Does not stick when scrolling -->
+                        <div class="flex justify-center py-2 bg-gray-50">
+                            <h3 id="test-passage-title" class="font-bold text-base text-gray-900 tracking-wide" style="font-family: Arial, sans-serif;">Passage 1</h3>
+                        </div>
+                        <!-- Passage Content: This section scrolls -->
+                        <div id="test-passage-text" class="overflow-y-auto p-4 bg-white text-sm leading-relaxed space-y-4" style="max-height: calc(400px - 40px); user-select: text; font-family: Arial, sans-serif;">
+                            <!-- Passage text will be inserted here -->
+                        </div>
+                    </div>
+
+                    <p class="mt-6 text-xs text-gray-500">Click NEXT to continue.</p>
+                </div>
+            </div>
+
+            <!-- Test Bottom Bar -->
+            <div class="fixed-bottom-bar flex items-center justify-between h-[50px] px-6">
+                <div class="flex gap-2">
+                    <button id="test-prev-btn" class="test-btn px-8 py-1.5">PREVIOUS</button>
+                </div>
+
+                <div class="flex justify-center flex-1">
+                    <button id="test-next-btn" class="test-btn px-10 py-1.5">NEXT</button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="test-mark-btn" class="test-btn px-5 py-1.5 flex items-center justify-center tracking-[0.5px]">MARK</button>
+                    <button id="test-exhibit-btn" class="test-btn px-5 py-1.5" onclick="showExhibit()">EXHIBIT</button>
+                    <button id="test-review-btn" class="test-btn px-5 py-1.5">REVIEW</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- == REVIEW VIEW (Hidden by default) == -->
+    <div id="review-view" class="app-view flex-col h-screen w-full view-with-bottom" style="display: none;">
+            <!-- Review Header -->
+            <div class="exam-header flex items-center justify-between text-white px-4 h-[46px]">
+                <div class="flex items-center gap-3">
+                    <button aria-label="Close" class="exam-close-btn w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none" onclick="showExitTestModal()">×</button>
+                    <div style="font-size: 14px; font-weight: normal; font-family: Arial, sans-serif;">Review Questions</div>
+                </div>
+                <div class="text-center leading-tight" style="font-family: Arial, sans-serif;">
+                    <div style="font-size: 14px; font-weight: normal;">Optofutureprep | OAT</div>
+                    <div id="review-header-title" style="font-size: 11px; opacity: 0.9; font-weight: normal;">Test Title</div>
+                </div>
+                <div style="font-size: 14px; font-weight: normal; font-family: Arial, sans-serif; white-space: nowrap;">Timer paused: <span id="review-timer">30:00</span></div>
+            </div>
+
+            <!-- Review Content -->
+            <div class="flex-1 overflow-auto bg-white">
+                <div class="max-w-[980px] mx-auto p-6">
+                    <div class="border border-gray-300">
+                        <!-- Table Headers -->
+                        <div class="grid grid-cols-4 bg-[#5f85a0] text-white" style="font-size: 14px; font-weight: 700; font-family: Arial, sans-serif;">
+                            <div class="px-3 py-2 border-r border-[#4f7288]">Name</div>
+                            <div class="px-3 py-2 border-r border-[#4f7288]">Marked</div>
+                            <div class="px-3 py-2 border-r border-[#4f7288]">Completed</div>
+                            <div class="px-3 py-2">Skipped</div>
+                        </div>
+                        <!-- Table Rows -->
+                        <div id="review-grid-container" class="max-h-[calc(100vh-200px)] overflow-auto bg-white">
+                            <!-- Review rows will be dynamically injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Footer -->
+            <div class="fixed-bottom-bar flex items-center justify-between h-[50px] px-6">
+                <div class="flex gap-2">
+                    <button id="review-marked-btn" class="test-btn px-5 py-1.5" onclick="jumpToQuestion('marked')">REVIEW MARKED</button>
+                    <button id="review-all-btn" class="test-btn px-5 py-1.5" onclick="jumpToQuestion('all')">REVIEW ALL</button>
+                    <button id="review-incomplete-btn" class="test-btn px-5 py-1.5" onclick="jumpToQuestion('incomplete')">REVIEW INCOMPLETE</button>
+                </div>
+                <button id="review-end-btn" class="test-btn px-8 py-1.5" onclick="openSubmitConfirmation()">END</button>
+            </div>
+        </div>
+        
+        <!-- == RESULTS VIEW (Score Summary - Hidden by default) == -->
+        <div id="results-view" class="app-view results-app-view" style="display: none;">
+            <!-- Close button (X) in top-left corner -->
+            <button onclick="showView('dashboard-view')" class="fixed top-6 left-6 z-50 w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center text-2xl font-bold shadow-lg transition-colors" aria-label="Back to Home">
+                ×
+            </button>
+            
+            <div class="w-full flex justify-center px-6 pb-24 pt-12">
+                <div class="w-full max-w-5xl">
+                    <div class="results-summary-card">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-[1]">
+                            <div>
+                                <div id="result-breadcrumb" class="text-sm font-semibold text-indigo-500 uppercase tracking-wide mb-2">Practice Test</div>
+                                <h1 id="result-test-title" class="text-3xl font-bold text-gray-900">Test Results</h1>
+                                <div class="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-500">
+                                    <span id="result-date-chip" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 font-medium">Date</span>
+                                    <span id="result-question-count" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">0 Questions</span>
+                                    <span id="result-attempt-chip" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">Attempt 1</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="results-reset-btn" class="px-4 py-2 bg-white/70 border border-indigo-200 text-indigo-600 font-semibold rounded-lg hover:bg-white transition-colors" onclick="handleResetCurrentTest()">Reset Attempts</button>
+                                <button id="results-start-review-btn" class="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition-colors" onclick="showDetailedReview()">Start Review</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 mt-10 relative z-[1]">
+                            <div class="flex flex-col items-center justify-center">
+                                <div id="result-score-ring" class="score-ring"><span id="result-score-value">200</span></div>
+                                <div id="result-average-score" class="mt-4 text-sm text-gray-500">Average: --</div>
+                            </div>
+                            <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="metric-card">
+                                    <div class="metric-label">Raw Score</div>
+                                    <div class="metric-value" id="results-raw-score">--</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Correct / Total</div>
+                                    <div class="metric-value" id="results-correct-total">--</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Time Per Question</div>
+                                    <div class="metric-value" id="results-time-per-question">--</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Total Time</div>
+                                    <div class="metric-value" id="results-total-time">--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="results-attempt-card" class="results-attempt-card">
+                        <div class="results-attempt-header">
+                            <div id="results-attempt-index" class="results-attempt-index">1</div>
+                            <div>
+                                <h3 id="results-attempt-title" class="results-attempt-title">Subject Test #1</h3>
+                                <div id="results-tagged-info" class="results-tagged-info">0 of 0 questions tagged</div>
+                            </div>
+                        </div>
+
+                        <div class="results-progress">
+                            <div class="results-progress-bar">
+                                <div id="results-progress-correct" class="results-progress-correct" style="width: 0%;"></div>
+                                <div id="results-progress-incorrect" class="results-progress-incorrect" style="width: 0%;"></div>
+                            </div>
+                            <div id="results-progress-text" class="results-progress-text">0 of 0 correct</div>
+                        </div>
+
+                        <div class="results-attempt-meta">
+                            <div class="results-meta-item">
+                                <span>Date</span>
+                                <span id="results-meta-date" class="results-meta-value">--</span>
+                            </div>
+                            <div class="results-meta-item">
+                                <span>Score</span>
+                                <span id="results-meta-score" class="results-meta-value">--</span>
+                            </div>
+                            <div class="results-meta-item">
+                                <span>Correct</span>
+                                <span id="results-meta-correct" class="results-meta-value">--</span>
+                            </div>
+                            <div class="results-meta-item">
+                                <span>Attempts</span>
+                                <span id="results-meta-attempts" class="results-meta-value">--</span>
+                            </div>
+                        </div>
+
+                        <div class="results-attempt-actions">
+                            <button class="results-reset-btn" onclick="handleResetCurrentTest()">Reset</button>
+                            <button class="results-review-btn" onclick="showDetailedReview()">Review</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- == PREVIOUS TESTS VIEW (Hidden by default) == -->
+        <div id="previous-tests-view" class="app-view previous-tests-app" style="display: none;">
+            <div class="previous-tests-container">
+                <div class="previous-tests-breadcrumb">
+                    <button onclick="showView('dashboard-view', null, document.getElementById('nav-home'))">Home</button>
+                    <span>/</span>
+                    <span>Previous Tests</span>
+                </div>
+
+                <div class="previous-tests-heading">
+                    <h1 class="previous-tests-title">Previous Tests</h1>
+                    <div id="previous-tests-count" class="previous-tests-subtitle">Loading your test history…</div>
+                </div>
+
+                <div class="previous-tests-card">
+                    <div class="previous-tests-card-header">
+                        <h2 class="previous-tests-card-title">Test History</h2>
+                        <div id="previous-tests-card-meta" class="previous-tests-card-meta">Most recent attempt shown first</div>
+                    </div>
+
+                    <div class="previous-tests-table-wrapper">
+                        <table class="previous-tests-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Raw Score</th>
+                                    <th>Test Name</th>
+                                    <th>Subject</th>
+                                    <th>Estimated Score</th>
+                                    <th>Date Taken</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previous-tests-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="previous-tests-empty" class="previous-tests-empty-state" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <h3>No test attempts yet</h3>
+                        <p>Complete a practice exam to see it listed here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- == TAGGED QUESTIONS VIEW (Hidden by default) == -->
+    <div id="tagged-questions-view" class="app-view view-with-bottom bg-white" style="display: none;">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <div class="flex items-center justify-between mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">Tagged Questions</h1>
+                    <button onclick="showView('dashboard-view')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                        Back to Home
+                    </button>
+                </div>
+                
+                <div id="tagged-questions-list" class="space-y-4">
+                    <!-- Tagged questions will be dynamically injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- == TAGGED REVIEW VIEW == -->
+        <div id="tagged-review-view" class="app-view review-layout" style="display: none;">
+            <aside class="review-sidebar">
+                <div class="review-sidebar-header">
+                    <button class="review-back-btn" onclick="showTaggedQuestions()" aria-label="Back to tagged list">×</button>
+                    <div class="review-sidebar-title">Tagged Review</div>
+                    <div id="tagged-review-header-title" class="review-sidebar-test">Subject</div>
+                    <div class="review-sidebar-progress">
+                        <div class="review-pill correct">
+                            <span class="dot"></span>
+                            <span>Correct</span>
+                            <span id="tagged-review-correct-count">0</span>
+                        </div>
+                        <div class="review-pill incorrect">
+                            <span class="dot"></span>
+                            <span>Incorrect</span>
+                            <span id="tagged-review-incorrect-count">0</span>
+                        </div>
+                        <div class="review-pill unanswered">
+                            <span class="dot"></span>
+                            <span>Unanswered</span>
+                            <span id="tagged-review-unanswered-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-sidebar-filters">
+                    <button id="tagged-review-filter-all" class="review-filter-btn active" onclick="filterTaggedReview('all')">All</button>
+                    <button id="tagged-review-filter-correct" class="review-filter-btn" onclick="filterTaggedReview('correct')">Correct</button>
+                    <button id="tagged-review-filter-incorrect" class="review-filter-btn" onclick="filterTaggedReview('incorrect')">Incorrect</button>
+                    <button id="tagged-review-filter-unanswered" class="review-filter-btn" onclick="filterTaggedReview('unanswered')">Unanswered</button>
+                </div>
+
+                <div class="review-sidebar-search">
+                    <input id="tagged-review-search" type="search" placeholder="Search tagged questions..." oninput="handleTaggedReviewSearch()">
+                </div>
+
+                <div id="tagged-review-question-list" class="review-question-list"></div>
+            </aside>
+
+            <section class="review-content">
+                <div class="review-content-header">
+                    <div>
+                        <div class="review-question-index">Question <span id="tagged-review-q-number">1</span> of <span id="tagged-review-q-total">0</span></div>
+                        <h1 id="tagged-review-q-stem" class="review-question-title">Question text will appear here</h1>
+                    </div>
+                    <div class="review-header-actions">
+                        <button id="tagged-review-remove-btn" class="review-action-btn" onclick="removeTagFromTaggedReview()">Remove Tag</button>
+                    </div>
+                </div>
+
+                <div class="review-meta-row">
+                    <div id="tagged-review-status-chip" class="review-meta-chip success">
+                        <span id="tagged-review-status-text">Correct</span>
+                    </div>
+                    <div id="tagged-review-answer-chip" class="review-meta-chip neutral">
+                        <span id="tagged-review-correct-answer">Correct Answer: --</span>
+                    </div>
+                    <div id="tagged-review-user-chip" class="review-meta-chip">
+                        <span id="tagged-review-user-answer">Your Answer: --</span>
+                    </div>
+                    <div id="tagged-review-meta-source" class="review-meta-chip">
+                        <span id="tagged-review-source">Source: --</span>
+                    </div>
+                </div>
+
+                <div id="tagged-review-choices" class="review-choices"></div>
+
+                <div class="review-explanation-card">
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Explanation</span>
+                    </h3>
+                    <div id="tagged-review-explanation">
+                        <p>No explanation available for this tagged question.</p>
+                    </div>
+                </div>
+
+                <div class="review-navigation">
+                    <button class="review-nav-btn" onclick="taggedReviewPrev()">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        Previous
+                    </button>
+                    <div id="tagged-review-progress" class="review-progress-count">1 / 0</div>
+                    <button class="review-nav-btn" onclick="taggedReviewNext()">
+                        Next
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+        
+        <!-- == DETAILED REVIEW VIEW (Hidden by default) == -->
+        <div id="detailed-review-view" class="app-view review-layout" style="display: none;">
+            <aside class="review-sidebar">
+                <div class="review-sidebar-header">
+                    <button class="review-back-btn" onclick="showResultsView()" aria-label="Back to results">×</button>
+                    <div class="review-sidebar-title">Test Review</div>
+                    <div id="review-test-title" class="review-sidebar-test">Subject Test #1</div>
+                    <div class="review-sidebar-progress">
+                        <div class="review-pill correct">
+                            <span class="dot"></span>
+                            <span>Correct</span>
+                            <span id="review-correct-count">0</span>
+                        </div>
+                        <div class="review-pill incorrect">
+                            <span class="dot"></span>
+                            <span>Incorrect</span>
+                            <span id="review-incorrect-count">0</span>
+                        </div>
+                        <div class="review-pill unanswered">
+                            <span class="dot"></span>
+                            <span>Unanswered</span>
+                            <span id="review-unanswered-count">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="review-sidebar-filters">
+                    <button id="review-filter-all" class="review-filter-btn active" onclick="filterReviewQuestions('all')">All</button>
+                    <button id="review-filter-correct" class="review-filter-btn" onclick="filterReviewQuestions('correct')">Correct</button>
+                    <button id="review-filter-incorrect" class="review-filter-btn" onclick="filterReviewQuestions('incorrect')">Incorrect</button>
+                    <button id="review-filter-unanswered" class="review-filter-btn" onclick="filterReviewQuestions('unanswered')">Unanswered</button>
+                    <button id="review-filter-tagged" class="review-filter-btn" onclick="filterReviewQuestions('tagged')">Tagged</button>
+                </div>
+                <div class="review-sidebar-search">
+                    <input id="review-search-input" type="search" placeholder="Search question text..." oninput="handleReviewSearch()">
+                </div>
+                <div id="review-question-list" class="review-question-list"></div>
+            </aside>
+
+            <section class="review-content">
+                <div class="review-content-header">
+                    <div>
+                        <div class="review-question-index">Question <span id="review-q-number">1</span> of <span id="review-q-total">0</span></div>
+                        <h1 id="review-q-stem" class="review-question-title">Question text will appear here</h1>
+                    </div>
+                    <div class="review-header-actions">
+                        <button id="review-mark-btn" class="review-action-btn" onclick="toggleMark(null, { context: 'detailed-review' })">MARK</button>
+                        <button id="review-tag-btn" class="review-action-btn" onclick="toggleTagQuestion()">
+                            <svg id="review-tag-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                            </svg>
+                            <span id="review-tag-text">Tag Question</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="review-meta-row">
+                    <div id="review-status-chip" class="review-meta-chip success">
+                        <span id="review-feedback-status">Correct</span>
+                    </div>
+                    <div id="review-answer-chip" class="review-meta-chip neutral">
+                        <span id="review-correct-answer">Correct Answer: A</span>
+                    </div>
+                    <div id="review-user-chip" class="review-meta-chip">
+                        <span id="review-user-answer">Your Answer: --</span>
+                    </div>
+                    <div id="review-time-chip" class="review-meta-chip">
+                        <span id="review-time-spent">Time Spent: 00:00</span>
+                    </div>
+                </div>
+
+                <div id="review-q-choices" class="review-choices"></div>
+
+                <div class="review-explanation-card">
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Explanation</span>
+                    </h3>
+                    <div id="review-explanation">
+                        <p>Explanation will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="review-navigation">
+                    <button class="review-nav-btn" onclick="reviewPrevQuestion()">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        Previous Question
+                    </button>
+                    <div id="review-progress-count" class="review-progress-count">1 / 0</div>
+                    <button class="review-nav-btn" onclick="reviewNextQuestion()">
+                        Next Question
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+        
+        <!-- == TAGGED QUESTIONS VIEW (Hidden by default) == -->
+        <div id="tagged-questions-view" class="app-view review-layout" style="display: none;">
+            <aside class="review-sidebar">
+                <div class="review-sidebar-header">
+                    <button class="review-back-btn" onclick="showView('dashboard-view')" aria-label="Back to home">×</button>
+                    <div class="review-sidebar-title">Tagged Questions</div>
+                    <div id="tagged-test-title" class="review-sidebar-test">All Tagged Questions</div>
+                    <div class="review-sidebar-progress">
+                        <div class="review-pill">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                            <span>Total</span>
+                            <span id="tagged-total-count">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="review-sidebar-filters">
+                    <button id="tagged-filter-all" class="review-filter-btn active" onclick="filterTaggedQuestions('all')">All</button>
+                    <button id="tagged-filter-correct" class="review-filter-btn" onclick="filterTaggedQuestions('correct')">Correct</button>
+                    <button id="tagged-filter-incorrect" class="review-filter-btn" onclick="filterTaggedQuestions('incorrect')">Incorrect</button>
+                </div>
+                <div class="review-sidebar-search">
+                    <input id="tagged-search-input" type="search" placeholder="Search question text..." oninput="handleTaggedSearch()">
+                </div>
+                <div id="tagged-question-list" class="review-question-list"></div>
+            </aside>
+
+            <section class="review-content">
+                <div class="review-content-header">
+                    <div>
+                        <div class="review-question-index">Question <span id="tagged-q-number">1</span> of <span id="tagged-q-total">0</span></div>
+                        <h1 id="tagged-q-stem" class="review-question-title">Question text will appear here</h1>
+                    </div>
+                    <div class="review-header-actions">
+                        <button id="tagged-untag-btn" class="review-action-btn is-tagged" onclick="toggleTagQuestionFromTagged()">
+                            <svg width="18" height="18" fill="currentColor" stroke="none" viewBox="0 0 24 24">
+                                <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                            </svg>
+                            <span>Remove Tag</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="review-meta-row">
+                    <div id="tagged-status-chip" class="review-meta-chip success">
+                        <span id="tagged-feedback-status">Correct</span>
+                    </div>
+                    <div id="tagged-answer-chip" class="review-meta-chip neutral">
+                        <span id="tagged-correct-answer">Correct Answer: A</span>
+                    </div>
+                    <div id="tagged-user-chip" class="review-meta-chip">
+                        <span id="tagged-user-answer">Your Answer: --</span>
+                    </div>
+                    <div class="review-meta-chip">
+                        <span id="tagged-subject-info">Subject Test #1</span>
+                    </div>
+                </div>
+
+                <div id="tagged-q-choices" class="review-choices"></div>
+
+                <div class="review-explanation-card">
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Explanation</span>
+                    </h3>
+                    <div id="tagged-explanation">
+                        <p>Explanation will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="review-navigation">
+                    <button class="review-nav-btn" onclick="taggedPrevQuestion()">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        Previous Question
+                    </button>
+                    <div id="tagged-progress-count" class="review-progress-count">1 / 0</div>
+                    <button class="review-nav-btn" onclick="taggedNextQuestion()">
+                        Next Question
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+    
+    <!-- Periodic Table Modal -->
+    <div id="periodic-table-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-lg shadow-xl w-[95%] max-w-6xl max-h-[90vh] overflow-auto">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <h3 class="text-xl font-semibold text-gray-900">Periodic Table of the Elements</h3>
+                <button onclick="hideExhibit()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
+            <!-- Periodic Table Content -->
+            <div id="periodic-table-content" class="p-6">
+                <!-- Periodic table will be inserted here (image for General Chemistry, HTML for others) -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculator Modal -->
+    <div id="calculator-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" style="display: none;" onclick="if(event.target.id === 'calculator-modal') hideCalculator()">
+        <div id="HistrixCalculator" style="width: 320px; background: #ececec; border: 2px solid #072c74; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.35); font-family: Tahoma, Arial, sans-serif; overflow: hidden;" onclick="event.stopPropagation()">
+            <div class="header" style="background:#001a9a; color:#fff; height: 24px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; position:relative;">
+                <div>Calculator</div>
+                <button class="close" onclick="hideCalculator()" style="position:absolute; right:6px; top:3px; width:18px; height:18px; background:#ff0000; border:2px solid #fff; color:#fff; line-height:14px; text-align:center; font-weight:900; border-radius:2px; cursor:pointer;">×</button>
+            </div>
+
+            <div class="calc-wrap" style="padding: 8px 8px 0;">
+                <div class="display-row" style="display:flex; gap:8px; margin-bottom:10px;">
+                    <span class="mem-box" style="width: 54px; background:#d8d8d8; border:1px solid #bfbfbf; border-radius:3px; height:24px; display:flex; align-items:center; justify-content:center;">
+                        <input id="calc-mem" readonly value="" style="border:none; background:transparent; width:100%; text-align:center; font-weight:700; color:#d46b00; padding:0; font-size:13px;" />
+                    </span>
+                    <input id="calc-display" readonly value="0" style="flex:1; height:26px; padding:0 6px; border:1px solid #bfbfbf; border-radius:3px; background:#f7f7f7; text-align:right; font-size:16px; font-weight:700; color:#000; box-sizing:border-box;" />
+                </div>
+            </div>
+
+            <div class="pad" style="padding: 10px;">
+                <div class="grid" style="display:grid; grid-template-columns: 48px repeat(5, 40px); column-gap:6px;">
+                    <!-- memory column -->
+                    <div class="mem-col" style="display:flex; flex-direction:column; gap:6px;">
+                        <div class="spacer" style="height:24px;"></div>
+                        <div class="btn red calc-btn" data-key="MC" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">MC</div>
+                        <div class="btn red calc-btn" data-key="MR" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">MR</div>
+                        <div class="btn red calc-btn" data-key="MS" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">MS</div>
+                        <div class="btn red calc-btn" data-key="M+" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">M+</div>
+                    </div>
+                    
+                    <!-- main keys: fixed 5x5 grid -->
+                    <div class="keys-grid" style="display:grid; grid-template-columns: repeat(5, 40px); grid-template-rows: repeat(5, 32px); gap:6px; margin-left:6px;">
+                        <!-- row 1 -->
+                        <div></div>
+                        <div class="btn red calc-btn" data-key="Backspace" style="grid-column:2 / span 2; user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">Backspace</div>
+                        <div class="btn red calc-btn" data-key="CE" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">CE</div>
+                        <div class="btn red calc-btn" data-key="CA" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">CA</div>
+
+                        <!-- row 2 -->
+                        <div class="btn blue calc-btn" data-key="7" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">7</div>
+                        <div class="btn blue calc-btn" data-key="8" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">8</div>
+                        <div class="btn blue calc-btn" data-key="9" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">9</div>
+                        <div class="btn red calc-btn" data-key="/" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">/</div>
+                        <div class="btn blue calc-btn" data-key="sqrt" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">sqrt</div>
+
+                        <!-- row 3 -->
+                        <div class="btn blue calc-btn" data-key="4" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">4</div>
+                        <div class="btn blue calc-btn" data-key="5" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">5</div>
+                        <div class="btn blue calc-btn" data-key="6" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">6</div>
+                        <div class="btn red calc-btn" data-key="*" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">*</div>
+                        <div class="btn blue calc-btn" data-key="%" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">%</div>
+
+                        <!-- row 4 -->
+                        <div class="btn blue calc-btn" data-key="1" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">1</div>
+                        <div class="btn blue calc-btn" data-key="2" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">2</div>
+                        <div class="btn blue calc-btn" data-key="3" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">3</div>
+                        <div class="btn red calc-btn" data-key="-" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">-</div>
+                        <div class="btn blue calc-btn" data-key="1/x" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">1/x</div>
+
+                        <!-- row 5 -->
+                        <div class="btn blue calc-btn" data-key="0" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">0</div>
+                        <div class="btn blue calc-btn" data-key="+/-" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">+/-</div>
+                        <div class="btn blue calc-btn" data-key="." style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">.</div>
+                        <div class="btn red calc-btn" data-key="+" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#b80000;">+</div>
+                        <div class="btn blue calc-btn" data-key="=" style="user-select:none; display:flex; align-items:center; justify-content:center; height:32px; border-radius:8px; border:1px solid #bdbdbd; background:linear-gradient(#f3f3f3, #d8d8d8); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.18); font-size:13px; font-weight:700; cursor:pointer; color:#1133ee;">=</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    <!-- Exit Test Modal -->
+    <div id="exit-test-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-[#0a6ea0] text-white rounded-lg shadow-xl w-full max-w-md">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-white/20">
+                <h3 class="text-lg font-semibold" data-exit-title>Would you like to exit the test?</h3>
+                <button onclick="hideExitTestModal()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6 flex items-start space-x-4">
+                <svg class="w-12 h-12 text-blue-300 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 1 1.71 3h16.94a2 2 0 0 1 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" x2="12" y1="9" y2="13"></line><line x1="12" x2="12.01" y1="17" y2="17"></line></svg>
+                <p data-exit-message>Your test is in progress. If you exit now, your test results will NOT be saved.</p>
+            </div>
+            <!-- Modal Footer -->
+            <div class="flex justify-end space-x-4 p-4 bg-black/20 rounded-b-lg">
+                <button onclick="hideExitTestModal()" class="test-btn px-6 py-2 bg-gray-500 hover:bg-gray-600" data-exit-cancel style="background: #6b7280; box-shadow: none; border-color: #4b5563;">Return to the Test</button>
+                <button onclick="confirmExitTest()" class="test-btn px-6 py-2" data-exit-confirm>Exit Test</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Test Confirmation Modal -->
+    <div id="confirm-submit-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex items-start gap-3">
+                <div class="mt-1 h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-semibold">?</div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">End test and view results?</h3>
+                    <p class="text-sm text-gray-600 mt-1">You'll be able to review your test results on the next page.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors" onclick="closeSubmitConfirmation()">Return to Test</button>
+                <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors" onclick="confirmSubmitTest()">End Test</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="genchem_tests.js"></script>
+    <script src="script.js"></script>
+    <script src="init_tests.js"></script>
+</body>
+</html>
